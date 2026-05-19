@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini Tetris</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="app">
@@ -16,10 +16,40 @@
             브라우저에서 바로 즐기는 간단한 테트리스 MVP입니다. 줄을 완성해 점수를 얻고,
             블록이 천장까지 쌓이기 전에 최대한 오래 버티세요.
           </p>
+          <div class="score-badge">
+            <span>전체 최고 점수</span>
+            <strong id="globalHighScore">0</strong>
+            <small id="globalHighScoreOwner">아직 기록 없음</small>
+          </div>
           <button id="playButton" type="button" class="play-button">플레이</button>
         </div>
 
         <div class="info-grid">
+          <article class="info-panel auth-panel">
+            <div class="auth-header">
+              <h2 id="authTitle">로그인</h2>
+              <button id="authToggleButton" type="button" class="text-button">회원가입</button>
+            </div>
+            <form id="authForm" class="auth-form">
+              <label>
+                이메일
+                <input id="emailInput" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                비밀번호
+                <input id="passwordInput" type="password" autocomplete="current-password" minlength="8" required />
+              </label>
+              <button id="authSubmitButton" type="submit" class="primary-button">로그인</button>
+            </form>
+            <div id="userPanel" class="user-panel is-hidden">
+              <span>로그인 계정</span>
+              <strong id="currentUserEmail"></strong>
+              <small>내 최고 점수: <b id="myHighScore">0</b></small>
+              <button id="logoutButton" type="button" class="text-button">로그아웃</button>
+            </div>
+            <p id="authMessage" class="message" role="status"></p>
+          </article>
+
           <article class="info-panel">
             <h2>플레이 방법</h2>
             <ul>
@@ -68,10 +98,19 @@
               <span>라인</span>
               <strong id="lines">0</strong>
             </div>
+            <div class="stat">
+              <span>내 최고 점수</span>
+              <strong id="sideMyHighScore">0</strong>
+            </div>
+            <div class="stat">
+              <span>전체 최고 점수</span>
+              <strong id="sideGlobalHighScore">0</strong>
+            </div>
             <div class="next-box">
               <span>다음 블록</span>
               <canvas id="next" width="96" height="96" aria-label="다음 블록"></canvas>
             </div>
+            <p id="saveMessage" class="message"></p>
             <button id="restartButton" type="button" class="primary-button">새 게임</button>
           </aside>
         </div>
@@ -86,6 +125,6 @@
       </section>
     </main>
 
-    <script src="script.js"></script>
+    <script src="/static/script.js"></script>
   </body>
 </html>

@@ -9,6 +9,7 @@
   --accent: #23c4a7;
   --accent-dark: #15977f;
   --danger: #f25f5c;
+  --warning: #ffd84d;
 }
 
 * {
@@ -24,6 +25,16 @@ body {
 }
 
 button {
+  font: inherit;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #424753;
+  border-radius: 6px;
+  padding: 12px;
+  background: #171a20;
+  color: var(--text);
   font: inherit;
 }
 
@@ -87,9 +98,30 @@ button {
   transition: transform 120ms ease, background 120ms ease;
 }
 
+.score-badge {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  padding: 14px;
+  border: 1px solid #424753;
+  border-radius: 6px;
+  background: rgba(35, 37, 45, 0.86);
+}
+
+.score-badge span,
+.score-badge small,
+.message {
+  color: var(--muted);
+}
+
+.score-badge strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -110,6 +142,73 @@ button {
   padding-left: 20px;
   color: var(--muted);
   line-height: 1.8;
+}
+
+.auth-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-header h2 {
+  margin: 0;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.text-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.user-panel {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #424753;
+  border-radius: 6px;
+  background: var(--panel-light);
+}
+
+.user-panel span,
+.user-panel small {
+  color: var(--muted);
+}
+
+.message {
+  min-height: 18px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.message.is-error {
+  color: var(--danger);
+}
+
+.message.is-success {
+  color: var(--accent);
 }
 
 .is-hidden {
@@ -188,6 +287,7 @@ canvas {
 .stat strong {
   font-size: 30px;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 #next {
@@ -289,6 +389,7 @@ canvas {
   }
 
   .next-box,
+  .message,
   .primary-button {
     grid-column: span 2;
   }

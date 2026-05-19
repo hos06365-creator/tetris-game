@@ -3,6 +3,8 @@ const ROWS = 20;
 const BLOCK = 30;
 const NEXT_BLOCK = 24;
 const DROP_INTERVAL = 650;
+const API_BASE_URL = "/api";
+const TOKEN_STORAGE_KEY = "miniTetrisToken";
 
 const COLORS = {
   I: "#45d7ff",
@@ -55,6 +57,22 @@ const musicButton = document.querySelector("#musicButton");
 const pauseButton = document.querySelector("#pauseButton");
 const restartButton = document.querySelector("#restartButton");
 const shell = document.querySelector(".game-shell");
+const globalHighScoreElement = document.querySelector("#globalHighScore");
+const globalHighScoreOwnerElement = document.querySelector("#globalHighScoreOwner");
+const sideGlobalHighScoreElement = document.querySelector("#sideGlobalHighScore");
+const sideMyHighScoreElement = document.querySelector("#sideMyHighScore");
+const authForm = document.querySelector("#authForm");
+const authTitle = document.querySelector("#authTitle");
+const authToggleButton = document.querySelector("#authToggleButton");
+const authSubmitButton = document.querySelector("#authSubmitButton");
+const emailInput = document.querySelector("#emailInput");
+const passwordInput = document.querySelector("#passwordInput");
+const userPanel = document.querySelector("#userPanel");
+const currentUserEmailElement = document.querySelector("#currentUserEmail");
+const myHighScoreElement = document.querySelector("#myHighScore");
+const logoutButton = document.querySelector("#logoutButton");
+const authMessage = document.querySelector("#authMessage");
+const saveMessage = document.querySelector("#saveMessage");
 
 let board;
 let activePiece;
@@ -72,6 +90,10 @@ let musicTimer;
 let musicStep = 0;
 let isMusicOn = false;
 let nextNoteTime = 0;
+let authMode = "login";
+let authToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+let currentUser = null;
+let scoreSavedForCurrentGame = false;
 
 const MELODY = [
   ["E5", 1], ["B4", 0.5], ["C5", 0.5], ["D5", 1], ["C5", 0.5], ["B4", 0.5],
@@ -116,8 +138,10 @@ function resetGame() {
   dropCounter = 0;
   isPaused = false;
   isGameOver = false;
+  scoreSavedForCurrentGame = false;
   hasStarted = true;
   shell.classList.remove("game-over");
+  setMessage(saveMessage, currentUser ? "" : "로그인하면 게임오버 후 점수가 저장됩니다.");
   pauseButton.textContent = "II";
   updateStats();
   draw();
@@ -208,6 +232,7 @@ function spawnPiece() {
   if (collides(activePiece)) {
     isGameOver = true;
     shell.classList.add("game-over");
+    saveCurrentScore();
   }
 }
 
@@ -262,6 +287,127 @@ function hardDrop() {
 function updateStats() {
   scoreElement.textContent = score;
   linesElement.textContent = lines;
+}
+
+function setMessage(element, text, type = "") {
+  element.textContent = text;
+  element.classList.toggle("is-error", type === "error");
+  element.classList.toggle("is-success", type === "success");
+}
+
+async function apiRequest(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers ?? {}),
+  };
+
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.detail || "요청을 처리하지 못했습니다.");
+  }
+  return data;
+}
+
+function applyAuthResponse(data) {
+  authToken = data.access_token;
+  currentUser = data.user;
+  localStorage.setItem(TOKEN_STORAGE_KEY, authToken);
+  renderAuthState();
+}
+
+function clearAuthState() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  renderAuthState();
+}
+
+function renderAuthState() {
+  const isLoggedIn = Boolean(currentUser);
+
+  authForm.classList.toggle("is-hidden", isLoggedIn);
+  userPanel.classList.toggle("is-hidden", !isLoggedIn);
+  currentUserEmailElement.textContent = currentUser?.email ?? "";
+  const myHighScore = currentUser?.high_score ?? 0;
+  myHighScoreElement.textContent = myHighScore;
+  sideMyHighScoreElement.textContent = myHighScore;
+
+  if (!isLoggedIn && !hasStarted) {
+    setMessage(authMessage, "로그인 후 플레이하면 점수가 기록됩니다.");
+  }
+}
+
+function renderGlobalHighScore(data) {
+  const scoreText = data?.score ?? 0;
+  globalHighScoreElement.textContent = scoreText;
+  sideGlobalHighScoreElement.textContent = scoreText;
+  globalHighScoreOwnerElement.textContent = data?.email ? data.email : "아직 기록 없음";
+}
+
+async function loadGlobalHighScore() {
+  try {
+    renderGlobalHighScore(await apiRequest("/scores/high-score"));
+  } catch (error) {
+    setMessage(authMessage, error.message, "error");
+  }
+}
+
+async function loadCurrentUser() {
+  if (!authToken) {
+    renderAuthState();
+    return;
+  }
+
+  try {
+    currentUser = await apiRequest("/users/me");
+  } catch {
+    clearAuthState();
+  }
+  renderAuthState();
+}
+
+async function saveCurrentScore() {
+  if (scoreSavedForCurrentGame) {
+    return;
+  }
+
+  scoreSavedForCurrentGame = true;
+  if (!currentUser) {
+    setMessage(saveMessage, "로그인하지 않아 점수를 저장하지 않았습니다.", "error");
+    return;
+  }
+
+  try {
+    const data = await apiRequest("/scores", {
+      method: "POST",
+      body: JSON.stringify({ score, lines }),
+    });
+    currentUser.high_score = data.user_high_score;
+    renderAuthState();
+    renderGlobalHighScore(data.global_high_score);
+    setMessage(saveMessage, `점수 ${score}점이 저장되었습니다.`, "success");
+  } catch (error) {
+    setMessage(saveMessage, error.message, "error");
+  }
+}
+
+function setAuthMode(nextMode) {
+  authMode = nextMode;
+  const isRegister = authMode === "register";
+  authTitle.textContent = isRegister ? "회원가입" : "로그인";
+  authSubmitButton.textContent = isRegister ? "회원가입" : "로그인";
+  authToggleButton.textContent = isRegister ? "로그인" : "회원가입";
+  passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+  setMessage(authMessage, "");
 }
 
 function drawCell(context, x, y, size, color) {
@@ -518,3 +664,36 @@ playButton.addEventListener("click", startGame);
 musicButton.addEventListener("click", toggleMusic);
 pauseButton.addEventListener("click", () => handleAction("pause"));
 restartButton.addEventListener("click", resetGame);
+
+authToggleButton.addEventListener("click", () => {
+  setAuthMode(authMode === "login" ? "register" : "login");
+});
+
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setMessage(authMessage, "");
+
+  const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
+  try {
+    const data = await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        email: emailInput.value,
+        password: passwordInput.value,
+      }),
+    });
+    applyAuthResponse(data);
+    authForm.reset();
+    setMessage(authMessage, authMode === "login" ? "로그인되었습니다." : "회원가입이 완료되었습니다.", "success");
+  } catch (error) {
+    setMessage(authMessage, error.message, "error");
+  }
+});
+
+logoutButton.addEventListener("click", () => {
+  clearAuthState();
+  setMessage(authMessage, "로그아웃되었습니다.");
+});
+
+loadCurrentUser();
+loadGlobalHighScore();
